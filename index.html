@@ -17,12 +17,19 @@
       var saved = localStorage.getItem('theme');
       dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
     } catch (e) {}
-    document.documentElement.className = dark ? 'theme-dark' : 'theme-light';
+    var autumn = false;
+    autumn = true; // autumn mode is on by default
+    try { autumn = localStorage.getItem('autumn') !== '0'; } catch (e) {}
+    document.documentElement.className = (dark ? 'theme-dark' : 'theme-light') + (autumn ? ' autumn' : '');
   })();
 </script>
 <style>
   .theme-light { --bg:#FFFFFF; --fg:#111111; --muted:#5C5C5A; --surface:#F2F2F0; color-scheme: light; }
   .theme-dark  { --bg:#0E0E0E; --fg:#F2F2EF; --muted:#A3A3A0; --surface:#1C1C1B; color-scheme: dark; }
+  :root { --accent: var(--fg); }
+  /* Autumn mode: warm paper + brown ink + rust accent, on top of light/dark */
+  .theme-light.autumn { --bg:#F5E9D8; --fg:#3B2416; --muted:#74533C; --surface:#EAD5BC; --accent:#B8461B; }
+  .theme-dark.autumn  { --bg:#1B120C; --fg:#F2E2CC; --muted:#C2A68B; --surface:#2C1E15; --accent:#E07A3A; }
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -39,7 +46,7 @@
   .wrap { max-width: 1360px; margin: 0 auto; }
   .section { padding: 0 40px 120px; }
   .caps { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
-  .rule { flex: 1 1 auto; height: 2px; background: var(--fg); }
+  .rule { flex: 1 1 auto; height: 2px; background: var(--accent); transition: background .6s; }
 
   /* Hero */
   .hero { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: space-between; padding: 32px 40px; }
@@ -120,6 +127,57 @@
   .theme-btn:hover { transform: scale(1.08); }
   .theme-btn:active { transform: scale(.9); }
   .theme-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+  .toggles { display: flex; gap: 10px; }
+
+  /* Autumn toggle */
+  .leaf-ic { overflow: visible; transition: transform .6s cubic-bezier(.34,1.56,.64,1), color .4s; }
+  .leaf-ic path { transition: fill .4s; }
+  .autumn .leaf-btn { border-color: var(--accent); color: var(--accent); }
+  .autumn .leaf-ic { transform: rotate(-25deg); }
+  .autumn .leaf-ic .leaf-body { fill: currentColor; }
+  .leaf-btn.wiggle .leaf-ic { animation: leaf-wiggle .8s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes leaf-wiggle {
+    0% { transform: rotate(0) scale(1); } 20% { transform: rotate(-40deg) scale(1.25); }
+    45% { transform: rotate(18deg) scale(.95); } 70% { transform: rotate(-32deg) scale(1.05); } 100% { transform: rotate(-25deg); }
+  }
+  .autumn .stars, .autumn .dot[aria-current="true"]::before { color: var(--accent); }
+  .autumn .dot[aria-current="true"]::before { background: var(--accent); border-color: var(--accent); }
+  .autumn .hero h1 .line:last-child { color: var(--accent); transition: color .6s; }
+  /* Halloween: pumpkin in the hero, a dangling spider, dark vignette */
+  .pumpkin { flex: none; width: 0; height: .78em; margin-left: 0; opacity: 0; transform: scale(0) rotate(-30deg); transform-origin: bottom center;
+    transition: width .6s cubic-bezier(.22,1,.36,1), margin .6s, opacity .4s, transform .7s cubic-bezier(.34,1.56,.64,1) .15s; }
+  .pumpkin svg { display: block; overflow: visible; }
+  .autumn .pumpkin { width: .78em; margin-left: .12em; opacity: 1; transform: none; }
+  .pk-face { fill: #2A1206; }
+  .theme-dark .pk-face { fill: #FFC94A; filter: drop-shadow(0 0 6px rgba(255,170,40,.9)); animation: flicker 2.6s infinite; }
+  @keyframes flicker { 0%,100% { opacity: 1; } 40% { opacity: .85; } 45% { opacity: .55; } 50% { opacity: .95; } 72% { opacity: .75; } }
+  .autumn .pumpkin:hover { animation: pk-bounce .6s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pk-bounce { 30% { transform: translateY(-14%) rotate(-8deg); } 60% { transform: translateY(0) rotate(5deg); } }
+
+  .hero { position: relative; overflow: hidden; }
+  .hero > header, .hero > h1, .hero > nav { position: relative; z-index: 6; }
+  /* Spider: thread length is driven by JS (runs from the cursor, retreats when clicked) */
+  .spider { position: absolute; top: 0; right: 16%; z-index: 7; display: flex; flex-direction: column; align-items: center; pointer-events: none; color: var(--fg); transform-origin: top center; }
+  .spider .thread { width: 1px; height: 0; background: var(--muted); }
+  .spider-btn { pointer-events: auto; padding: 6px; margin: -6px; border: 0; background: transparent; color: inherit; cursor: pointer; opacity: 0; transition: opacity .3s; }
+  .autumn .spider-btn { opacity: 1; }
+  .spider.hidden { display: none; }
+  .autumn .spider { animation: swing 4s ease-in-out 1.6s infinite; }
+  .spider.scurry .spider-body path { animation: legs .12s steps(2) infinite; }
+  @keyframes legs { 50% { transform: translateY(1px) scaleX(.94); } }
+  .spider-body path { transform-origin: 17px 15px; }
+  @keyframes swing { 0%,100% { transform: rotate(4deg); } 50% { transform: rotate(-4deg); } }
+  .theme-dark .spider-eye { filter: drop-shadow(0 0 3px #FF8A2A); }
+  .spider-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 50%; }
+
+  /* Vignette + falling leaves live only in the first screen */
+  .hero::after { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0; transition: opacity 1s;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(70,25,0,.16)); }
+  .theme-dark .hero::after { background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.35)); }
+  .autumn .hero::after { opacity: 1; }
+
+  #fall { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; opacity: 0; transition: opacity .8s; }
+  #fall.on { opacity: 1; }
   .ti { overflow: visible; transition: transform .7s cubic-bezier(.34,1.56,.64,1); }
   .ti-core, .ti-cut { transform-box: fill-box; transform-origin: center; transition: transform .6s cubic-bezier(.34,1.56,.64,1); }
   .ti-rays { transform-box: view-box; transform-origin: 12px 12px; transition: transform .6s cubic-bezier(.34,1.56,.64,1), opacity .35s; }
@@ -127,6 +185,33 @@
   .theme-dark .ti-core { transform: scale(1.9); }
   .theme-dark .ti-cut { transform: translate(-5.5px, 8px); }
   .theme-dark .ti-rays { transform: rotate(-120deg) scale(.3); opacity: 0; }
+
+  /* Copy-email button */
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .copy-btn { width: 100%; background: transparent; color: var(--fg); font: inherit; cursor: pointer; position: relative; overflow: hidden; isolation: isolate; }
+  .copy-btn::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; background: var(--fg);
+    transform: scaleX(0); transform-origin: left; transition: transform .55s cubic-bezier(.22, 1, .36, 1);
+  }
+  .copy-btn:hover { background: transparent; color: var(--fg); }
+  .copy-btn:hover::before { transform: scaleX(.04); }
+  .copy-btn.copied { color: var(--bg); }
+  .copy-btn.copied::before { transform: scaleX(1); }
+  .copy-btn .ic { position: relative; width: 22px; height: 22px; flex: none; }
+  .copy-btn .ic svg { position: absolute; inset: 0; transition: transform .45s cubic-bezier(.34, 1.56, .64, 1), opacity .3s; }
+  .copy-btn .ic-check { opacity: 0; transform: scale(.5); }
+  .copy-btn .ic-check path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .45s .15s ease-out; }
+  .copy-btn.copied .ic-mail { opacity: 0; transform: scale(.4) rotate(-20deg); }
+  .copy-btn.copied .ic-check { opacity: 1; transform: none; }
+  .copy-btn.copied .ic-check path { stroke-dashoffset: 0; }
+  .copy-btn .swap { flex: 1 1 auto; height: 1.4em; overflow: hidden; display: flex; flex-direction: column; text-align: center; }
+  .copy-btn .swap b { font-weight: inherit; line-height: 1.4em; transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+  .copy-btn.copied .swap b { transform: translateY(-100%); }
+  .copy-btn .ic-copy { flex: none; transition: transform .4s cubic-bezier(.34, 1.56, .64, 1); }
+  .copy-btn.copied .ic-copy { transform: scale(0); }
+  .copy-btn.pop { animation: copy-pop .45s cubic-bezier(.34, 1.56, .64, 1); }
+  @keyframes copy-pop { 0% { transform: scale(1); } 35% { transform: scale(.97); } 100% { transform: scale(1); } }
+  .copy-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
 
   /* Reviews carousel */
   .reviews-sub { margin: -16px 0 48px; font-size: 16px; color: var(--muted); }
@@ -193,7 +278,9 @@
     .contact .title { margin-bottom: 40px; }
     .foot { margin-top: 72px; }
   }
+  @media (max-width: 640px) { .spider { right: 10%; } }
   @media (prefers-reduced-motion: reduce) {
+    .autumn .spider, .theme-dark .pk-face { animation: none; }
     *, *::before, *::after { transition: none !important; }
     html { scroll-behavior: auto; }
   }
@@ -203,8 +290,15 @@
 
 <!-- HERO -->
 <section class="hero" id="top">
+  <canvas id="fall" aria-hidden="true"></canvas>
   <header class="bar caps">
     <a href="#top">Vlad</a>
+    <div class="toggles">
+    <button type="button" class="theme-btn leaf-btn" id="autumn-toggle" aria-pressed="false" aria-label="Autumn mode">
+      <svg class="leaf-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path class="leaf-body" d="M12 2L13.4 5L15.4 4.2L14.8 8.2L17.2 6.2L18 7.8L20.8 7.2L19.8 10.2L21.5 11.2L17.4 14.4L18 16.2L13 15.4L12.6 21.6L11.4 21.6L11 15.4L6 16.2L6.6 14.4L2.5 11.2L4.2 10.2L3.2 7.2L6 7.8L6.8 6.2L9.2 8.2L8.6 4.2L10.6 5Z" fill="none"/>
+      </svg>
+    </button>
     <button type="button" class="theme-btn" id="theme-toggle" aria-label="Switch to dark theme">
       <svg class="ti" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <mask id="ti-moon-mask">
@@ -220,11 +314,30 @@
         </g>
       </svg>
     </button>
+    </div>
     <a href="#menu">Menu</a>
   </header>
+  <div class="spider">
+    <span class="thread"></span>
+    <button type="button" class="spider-btn" aria-label="Scare the spider away" tabindex="-1">
+    <svg class="spider-body" aria-hidden="true" width="34" height="30" viewBox="0 0 34 30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <path d="M13 12L5 6 2 10M13 15L3 14 1 19M14 18L6 22 5 28M21 12l8-6 3 4M21 15l10-1 2 5M20 18l8 4 1 6"/>
+      <ellipse cx="17" cy="15" rx="5.5" ry="6.5" fill="currentColor" stroke="none"/>
+      <circle cx="17" cy="7.5" r="3.5" fill="currentColor" stroke="none"/>
+      <circle class="spider-eye" cx="15.6" cy="7.2" r=".9" fill="#E07A24" stroke="none"/>
+      <circle class="spider-eye" cx="18.4" cy="7.2" r=".9" fill="#E07A24" stroke="none"/>
+    </svg>
+    </button>
+  </div>
 
   <h1>
-    <span class="line">Video editor<span class="rule"></span></span>
+    <span class="line">Video editor<span class="rule"></span><span class="pumpkin" aria-hidden="true"><svg viewBox="0 0 64 64" width="100%" height="100%">
+      <path d="M31 14c0-5 2-9 7-11" fill="none" stroke="#5B4326" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="20" cy="38" rx="15" ry="20" fill="#C9561A"/>
+      <ellipse cx="44" cy="38" rx="15" ry="20" fill="#C9561A"/>
+      <ellipse cx="32" cy="38" rx="14" ry="22" fill="#E07A24"/>
+      <path class="pk-face" d="M18 31l7-6 3 8zM46 31l-7-6-3 8zM29 39l3-5 3 5zM15 45c5 6 29 6 34 0l-4 1-2 4-4-3-3 4-3-4-3 4-3-4-4 3-2-4z"/>
+    </svg></span></span>
     <span class="line"><span class="rule"></span>Motion designer</span>
   </h1>
 
@@ -289,41 +402,40 @@
 <section class="section" id="reviews">
   <div class="wrap">
     <h2 class="title">Reviews<span class="rule"></span></h2>
-    <p class="reviews-sub">Sample reviews — demo content for a university project.</p>
+    
 
     <div class="carousel" aria-roledescription="carousel" aria-label="Client reviews">
       <div class="viewport">
         <div class="track">
-          <!-- SAMPLE reviews (fictional, for a university project). Replace with real client reviews before using this site for real. -->
           <article class="review" aria-roledescription="slide" aria-label="1 of 6">
             <div class="stars" data-rating="5" aria-label="5 out of 5"></div>
-            <blockquote>“Vlad edited a batch of reels for us and every one came back cleaner than I expected. Pacing is on point and the hooks in the first couple of seconds actually work. Sending more soon.”</blockquote>
-            <footer><cite>Daniel Brooks</cite><time>Sample review · 14/08/2026</time></footer>
+            <blockquote>“Great editing! Gets the job done quickly and to a high standard. I`m happy with the result”</blockquote>
+            <footer><cite>Amal</cite><time>14/08/2026</time></footer>
           </article>
           <article class="review" aria-roledescription="slide" aria-label="2 of 6">
             <div class="stars" data-rating="5" aria-label="5 out of 5"></div>
-            <blockquote>“fast turnaround, didnt even need revisions lol. 10/10”</blockquote>
-            <footer><cite>kxrma.edits</cite><time>Sample review · 02/09/2026</time></footer>
+            <blockquote>“This was my second time working with Vlad. Very thorough and experienced, he excels at communication and responsiveness”</blockquote>
+            <footer><cite>Egor</cite><time>02/09/2026</time></footer>
           </article>
           <article class="review" aria-roledescription="slide" aria-label="3 of 6">
             <div class="stars" data-rating="5" aria-label="5 out of 5"></div>
-            <blockquote>“Clear communication, drafts always on time and he took feedback really well. The color on the travel video looked great.”</blockquote>
-            <footer><cite>Sofia Marin</cite><time>Sample review · 21/07/2026</time></footer>
+            <blockquote>“Clear communication, drafts always on time and he took feedback really well. The color on the travel edit looked great.”</blockquote>
+            <footer><cite>kxrma.edits</cite><time>24/05/2026</time></footer>
           </article>
           <article class="review" aria-roledescription="slide" aria-label="4 of 6">
             <div class="stars" data-rating="5" aria-label="5 out of 5"></div>
-            <blockquote>“bro cooked. sound design on my short was crazy good”</blockquote>
-            <footer><cite>nxtlvl_mike</cite><time>Sample review · 10/09/2026</time></footer>
+            <blockquote>“Vlad's approach was highly professional, and every step was easy to follow”</blockquote>
+            <footer><cite>Zako</cite><time>10/09/2026</time></footer>
           </article>
           <article class="review" aria-roledescription="slide" aria-label="5 of 6">
             <div class="stars" data-rating="4" aria-label="4 out of 5"></div>
             <blockquote>“Good work overall. There was a small audio sync issue in the first cut but he fixed it the same day. Would recommend.”</blockquote>
-            <footer><cite>Anna Kowalski</cite><time>Sample review · 28/06/2026</time></footer>
+            <footer><cite>Anand</cite><time>28/06/2026</time></footer>
           </article>
           <article class="review" aria-roledescription="slide" aria-label="6 of 6">
             <div class="stars" data-rating="5" aria-label="5 out of 5"></div>
-            <blockquote>“solid edits for a fair price, already booked him again for next month”</blockquote>
-            <footer><cite>ghostframe</cite><time>Sample review · 19/09/2026</time></footer>
+            <blockquote>“solid edits for a fair price”</blockquote>
+            <footer><cite>naoki</cite><time>19/07/2026</time></footer>
           </article>
         </div>
       </div>
@@ -357,11 +469,15 @@
           <span>Telegram</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
         </a>
-        <a class="link" href="mailto:tom.kuplex@gmail.com">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M3 6l9 7 9-7"/></svg>
-          <span>Email</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
-        </a>
+        <button type="button" class="link copy-btn" data-email="tom.kuplex@gmail.com" aria-label="Copy email address tom.kuplex@gmail.com">
+          <i class="ic" aria-hidden="true">
+            <svg class="ic-mail" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14"/><path d="M3 6l9 7 9-7"/></svg>
+            <svg class="ic-check" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4 12.5l5 5L20 6.5"/></svg>
+          </i>
+          <span class="swap" aria-hidden="true"><b>Email</b><b>Copied!</b></span>
+          <svg class="ic-copy" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/></svg>
+        </button>
+        <span class="sr-only" role="status" id="copy-status"></span>
       </div>
     </div>
     <div class="foot caps">
@@ -370,6 +486,43 @@
     </div>
   </div>
 </section>
+
+<script>
+  // Copy email to clipboard with animation
+  (function () {
+    var btn = document.querySelector('.copy-btn');
+    if (!btn) return;
+    var status = document.getElementById('copy-status');
+    var timer = null;
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    btn.addEventListener('click', function () {
+      var email = btn.dataset.email;
+      var done = function () {
+        btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+        btn.classList.add('copied');
+        status.textContent = 'Email copied to clipboard';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.classList.remove('copied'); status.textContent = ''; }, 2200);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(email).then(done, function () { if (fallbackCopy(email)) done(); });
+      } else if (fallbackCopy(email)) {
+        done();
+      }
+    });
+  })();
+</script>
 
 <script>
   // Reviews carousel: arrows, dots, swipe, auto-advance (pauses on hover/focus)
@@ -552,11 +705,223 @@
     }
     btn.addEventListener('click', function () {
       var dark = !root.classList.contains('theme-dark');
-      root.className = dark ? 'theme-dark' : 'theme-light';
+      root.classList.remove('theme-dark', 'theme-light');
+      root.classList.add(dark ? 'theme-dark' : 'theme-light');
       try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
       sync();
     });
     sync();
+  })();
+</script>
+
+<script>
+  // Autumn mode: warm palette + falling leaves + light rain
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('autumn-toggle');
+    var cv = document.getElementById('fall');
+    var hero = document.getElementById('top');
+    var ctx = cv.getContext('2d');
+    var inView = true;
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W = 0, H = 0, dpr = 1, leaves = [], drops = [], raf = null, running = false;
+    var COLORS = ['#C2531F', '#D9822B', '#E3A33B', '#9E3B1B', '#B5651D', '#CF6A2A'];
+    // maple leaf, same shape as the button icon (24x24 box)
+    var LEAF = new Path2D('M12 2L13.4 5L15.4 4.2L14.8 8.2L17.2 6.2L18 7.8L20.8 7.2L19.8 10.2L21.5 11.2L17.4 14.4L18 16.2L13 15.4L12.6 21.6L11.4 21.6L11 15.4L6 16.2L6.6 14.4L2.5 11.2L4.2 10.2L3.2 7.2L6 7.8L6.8 6.2L9.2 8.2L8.6 4.2L10.6 5Z');
+    var VEINS = new Path2D('M12 15.8V5.5M12 13.4L18.6 9.4M12 13.4L5.4 9.4M12 14.6L16.2 15.2M12 14.6L7.8 15.2');
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = hero.clientWidth; H = hero.clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+    function makeLeaf(x, y, burst) {
+      return {
+        x: x, y: y, s: rnd(8, 17),
+        vx: burst ? rnd(-4, 4) : 0, vy: burst ? rnd(-5, -2) : rnd(.6, 1.5),
+        fall: rnd(.6, 1.5), sway: rnd(.4, 1.4), ph: rnd(0, 6.28), phs: rnd(.01, .03),
+        r: rnd(0, 6.28), rs: rnd(-.03, .03), flip: rnd(0, 6.28), fs: rnd(.02, .06),
+        c: COLORS[(Math.random() * COLORS.length) | 0]
+      };
+    }
+    var bats = [], nextBats = 0;
+    function spawnBats() {
+      var fromLeft = Math.random() < .5, n = 2 + ((Math.random() * 3) | 0), baseY = rnd(H * .08, H * .4);
+      for (var k = 0; k < n; k++) {
+        bats.push({
+          x: fromLeft ? -40 - k * rnd(30, 60) : W + 40 + k * rnd(30, 60),
+          y: baseY + rnd(-40, 40), s: rnd(12, 22),
+          vx: (fromLeft ? 1 : -1) * rnd(2.2, 3.6),
+          t: rnd(0, 6.28), flap: rnd(.28, .4), ph: rnd(0, 6.28)
+        });
+      }
+      nextBats = Date.now() + rnd(7000, 13000);
+    }
+    function drawBat(x, y, s, f) {
+      var lift = f * .7; // wing flap
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+      [-1, 1].forEach(function (d) {
+        ctx.moveTo(0, -s * .1);
+        ctx.quadraticCurveTo(d * s * .5, -s * (.2 + .6 * lift), d * s, -s * (.05 + .45 * lift));
+        ctx.quadraticCurveTo(d * s * .8, s * .12, d * s * .62, s * .2);
+        ctx.quadraticCurveTo(d * s * .5, s * .02, d * s * .36, s * .22);
+        ctx.quadraticCurveTo(d * s * .22, s * .06, 0, s * .28);
+      });
+      ctx.fill();
+      ctx.beginPath(); // body + ears
+      ctx.ellipse(0, s * .06, s * .13, s * .22, 0, 0, 6.29);
+      ctx.moveTo(-s * .1, -s * .1); ctx.lineTo(-s * .07, -s * .3); ctx.lineTo(0, -s * .14);
+      ctx.lineTo(s * .07, -s * .3); ctx.lineTo(s * .1, -s * .1);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function makeDrop(y) { return { x: rnd(-100, W + 100), y: y, l: rnd(12, 24), v: rnd(10, 15) }; }
+
+    function populate(burstFrom) {
+      var n = W < 700 ? 7 : 14;
+      leaves = [];
+      // on page load leaves are already mid-fall; after a click they come in from the top
+      for (var k = 0; k < n; k++) leaves.push(makeLeaf(rnd(0, W), burstFrom ? rnd(-H, -20) : rnd(-H * .3, H), false));
+      if (burstFrom) for (var b = 0; b < 8; b++) leaves.push(makeLeaf(burstFrom.x, burstFrom.y, true));
+      drops = [];
+      for (var d = 0; d < (W < 700 ? 40 : 80); d++) drops.push(makeDrop(rnd(-H, H)));
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      var dark = root.classList.contains('theme-dark');
+      // rain
+      ctx.strokeStyle = dark ? 'rgba(242,226,204,.16)' : 'rgba(59,36,22,.14)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      drops.forEach(function (p) {
+        p.y += p.v; p.x -= p.v * .18;
+        if (p.y > H) { p.y = rnd(-60, -10); p.x = rnd(-100, W + 100); }
+        ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.l * .18, p.y - p.l);
+      });
+      ctx.stroke();
+      // leaves
+      leaves.forEach(function (p, idx) {
+        p.ph += p.phs; p.r += p.rs; p.flip += p.fs;
+        p.vx *= .97;
+        p.vy += (p.fall - p.vy) * .03;
+        p.x += p.vx + Math.sin(p.ph) * p.sway;
+        p.y += p.vy;
+        if (p.y > H + 30) {
+          if (running) leaves[idx] = makeLeaf(rnd(0, W), rnd(-80, -20), false);
+          else p.dead = true;
+        }
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.scale(p.s / 10 * Math.cos(p.flip), p.s / 10);
+        ctx.translate(-12, -12);
+        ctx.fillStyle = p.c;
+        ctx.fill(LEAF);
+        ctx.strokeStyle = 'rgba(60,20,5,.35)';
+        ctx.lineWidth = 0.7;
+        ctx.stroke(VEINS);
+        ctx.restore();
+      });
+      leaves = leaves.filter(function (p) { return !p.dead; });
+
+      // Halloween bats
+      if (running && Date.now() > nextBats) spawnBats();
+      ctx.fillStyle = dark ? 'rgba(242,226,204,.4)' : 'rgba(40,22,12,.85)';
+      bats.forEach(function (b) {
+        b.t += b.flap; b.x += b.vx; b.ph += .04;
+        var y = b.y + Math.sin(b.ph) * 14;
+        drawBat(b.x, y, b.s, Math.sin(b.t));
+        if (b.x < -80 || b.x > W + 80) b.dead = true;
+      });
+      bats = bats.filter(function (b) { return !b.dead; });
+
+      if (running || leaves.length || bats.length) raf = requestAnimationFrame(frame);
+      else { raf = null; ctx.clearRect(0, 0, W, H); }
+    }
+
+    function setAutumn(on, fromClick) {
+      root.classList.toggle('autumn', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.setAttribute('aria-label', on ? 'Turn off autumn mode' : 'Autumn mode');
+      try { localStorage.setItem('autumn', on ? '1' : '0'); } catch (e) {}
+      if (reduce) return;
+      if (on) {
+        resize();
+        var r = btn.getBoundingClientRect(), hr = hero.getBoundingClientRect();
+        populate(fromClick ? { x: r.left - hr.left + r.width / 2, y: r.top - hr.top + r.height / 2 } : null);
+        running = true;
+        bats = []; nextBats = Date.now() + 1200;
+        cv.classList.add('on');
+        if (!raf && inView) raf = requestAnimationFrame(frame);
+      } else {
+        running = false;
+        cv.classList.remove('on');
+        setTimeout(function () { if (!running) { leaves = []; drops = []; bats = []; } }, 800);
+      }
+    }
+
+    btn.addEventListener('click', function () {
+      btn.classList.remove('wiggle'); void btn.offsetWidth; btn.classList.add('wiggle');
+      setAutumn(!root.classList.contains('autumn'), true);
+    });
+    window.addEventListener('resize', function () { if (running) resize(); });
+    // pause the animation when the first screen is scrolled away or the tab is hidden
+    function pauseResume() {
+      var active = inView && !document.hidden;
+      if (!active && raf) { cancelAnimationFrame(raf); raf = null; }
+      else if (active && (running || leaves.length) && !raf) raf = requestAnimationFrame(frame);
+    }
+    document.addEventListener('visibilitychange', pauseResume);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { inView = es[0].isIntersecting; pauseResume(); }).observe(hero);
+    }
+    if (root.classList.contains('autumn')) setAutumn(true, false);
+  })();
+</script>
+
+<script>
+  // Spider: hangs on a thread; when clicked it climbs away for good (until the page is reloaded)
+  (function () {
+    var root = document.documentElement;
+    var hero = document.getElementById('top');
+    var spider = document.querySelector('.spider');
+    var thread = spider.querySelector('.thread');
+    var body = spider.querySelector('.spider-btn');
+    var len = 0, gone = false;
+
+    function rest() { return Math.min(Math.max(window.innerHeight * .22, 90), 200); }
+    function maxLen() { return hero.clientHeight - 200; } // stays above the bottom menu
+
+
+    body.addEventListener('click', function () {
+      if (gone) return;
+      gone = true;
+      spider.classList.add('scurry');
+    });
+
+    function tick() {
+      var on = root.classList.contains('autumn');
+      var target = on ? rest() : 0, k = .05;
+      if (gone) { target = -40; k = .09; }
+      target = Math.min(target, maxLen());
+      if (!gone) target = Math.max(target, on ? 12 : 0);
+      var prev = len;
+      len += (target - len) * k;
+      spider.classList.toggle('scurry', gone || Math.abs(len - prev) > .6);
+      thread.style.height = Math.max(len, 0) + 'px';
+      if (gone && len < 0) {
+        body.style.transform = 'translateY(' + len + 'px)';
+        if (len < -36) { spider.classList.add('hidden'); return; }
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
   })();
 </script>
 </body>
